@@ -2,12 +2,18 @@ import pandas as pd
 from pathlib import Path
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
+import joblib
 
 # Project paths
 BASE_DIR = Path(__file__).resolve().parents[2]
 
 DATA_PATH = BASE_DIR / "ml" / "dataset" / "processed" / "smart_helmet_processed.csv"
 OUTPUT_DIR = BASE_DIR / "ml" / "dataset" / "processed"
+
+MODEL_DIR = BASE_DIR / "ml" / "models"
+MODEL_DIR.mkdir(parents=True, exist_ok=True)
+
+SCALER_PATH = MODEL_DIR / "scaler.pkl"
 
 # --------------------------------------------------
 # 1. Load dataset
@@ -79,7 +85,13 @@ X_test_scaled = scaler.transform(X_test)
 
 print("\nFeature scaling completed.")
 
-# --------------------------------------------------
+# Save the scaler for future predictions
+joblib.dump(scaler, SCALER_PATH)
+
+print("Scaler saved successfully!")
+print("Scaler path:", SCALER_PATH)
+
+# ------------------------------------------------c--
 # 6. Convert scaled data back to DataFrames
 # --------------------------------------------------
 
