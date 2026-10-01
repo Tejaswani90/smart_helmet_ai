@@ -4,19 +4,24 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 import joblib
 
-# Project paths
+# --------------------------------------------------
+# 1. Project paths
+# --------------------------------------------------
+
 BASE_DIR = Path(__file__).resolve().parents[2]
 
-DATA_PATH = BASE_DIR / "ml" / "dataset" / "processed" / "smart_helmet_processed.csv"
-OUTPUT_DIR = BASE_DIR / "ml" / "dataset" / "processed"
+DATA_PATH = BASE_DIR / "ml" / "dataset" / "raw" / "smart_helmet_sensor_data.csv"
 
+OUTPUT_DIR = BASE_DIR / "ml" / "dataset" / "processed"
 MODEL_DIR = BASE_DIR / "ml" / "models"
+
+OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 MODEL_DIR.mkdir(parents=True, exist_ok=True)
 
-SCALER_PATH = MODEL_DIR / "scaler.pkl"
+SCALER_PATH = MODEL_DIR / "smart_helmet_scaler.pkl"
 
 # --------------------------------------------------
-# 1. Load dataset
+# 2. Load RAW dataset
 # --------------------------------------------------
 
 df = pd.read_csv(DATA_PATH)
@@ -25,20 +30,23 @@ print("Dataset loaded successfully!")
 print("Original shape:", df.shape)
 
 # --------------------------------------------------
-# 2. Check duplicate rows
+# 3. Check labels
 # --------------------------------------------------
 
-duplicates = df.duplicated().sum()
-print("Duplicate rows:", duplicates)
+print("\nLabel distribution:")
+print(df["label"].value_counts())
 
-if duplicates > 0:
-    df = df.drop_duplicates()
-    print("Duplicates removed.")
-else:
-    print("No duplicate rows found.")
+# Convert labels
+df["label"] = df["label"].map({
+    "Normal": 0,
+    "Accident": 1
+})
+
+print("\nConverted labels:")
+print(df["label"].value_counts())
 
 # --------------------------------------------------
-# 3. Separate features and label
+# 4. Features
 # --------------------------------------------------
 
 features = [
@@ -60,7 +68,7 @@ print("\nFeature shape:", X.shape)
 print("Label shape:", y.shape)
 
 # --------------------------------------------------
-# 4. Split into training and testing data
+# 5. Train/Test split
 # --------------------------------------------------
 
 X_train, X_test, y_train, y_test = train_test_split(
@@ -75,7 +83,7 @@ print("\nTraining samples:", len(X_train))
 print("Testing samples:", len(X_test))
 
 # --------------------------------------------------
-# 5. Scale sensor features
+# 6. Scale features
 # --------------------------------------------------
 
 scaler = StandardScaler()
@@ -85,14 +93,17 @@ X_test_scaled = scaler.transform(X_test)
 
 print("\nFeature scaling completed.")
 
-# Save the scaler for future predictions
+# --------------------------------------------------
+# 7. Save scaler
+# --------------------------------------------------
+
 joblib.dump(scaler, SCALER_PATH)
 
-print("Scaler saved successfully!")
+print("\nScaler saved successfully!")
 print("Scaler path:", SCALER_PATH)
 
-# ------------------------------------------------c--
-# 6. Convert scaled data back to DataFrames
+# --------------------------------------------------
+# 8. Convert scaled data to DataFrames
 # --------------------------------------------------
 
 X_train_scaled = pd.DataFrame(
@@ -110,7 +121,7 @@ X_train_scaled["label"] = y_train.reset_index(drop=True)
 X_test_scaled["label"] = y_test.reset_index(drop=True)
 
 # --------------------------------------------------
-# 7. Save processed datasets
+# 9. Save processed datasets
 # --------------------------------------------------
 
 train_path = OUTPUT_DIR / "train_data.csv"

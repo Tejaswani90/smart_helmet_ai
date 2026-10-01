@@ -3,6 +3,7 @@ from pathlib import Path
 
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
+
 import joblib
 
 
@@ -22,7 +23,7 @@ MODEL_PATH = MODEL_DIR / "smart_helmet_model.pkl"
 
 
 # --------------------------------------------------
-# 2. Load training and testing data
+# 2. Load processed data
 # --------------------------------------------------
 
 train_data = pd.read_csv(TRAIN_PATH)
@@ -33,7 +34,7 @@ print("Testing data loaded:", test_data.shape)
 
 
 # --------------------------------------------------
-# 3. Separate features and labels
+# 3. Features
 # --------------------------------------------------
 
 features = [
@@ -45,6 +46,7 @@ features = [
     "gyro_z"
 ]
 
+
 X_train = train_data[features]
 y_train = train_data["label"]
 
@@ -53,7 +55,7 @@ y_test = test_data["label"]
 
 
 # --------------------------------------------------
-# 4. Create the ML model
+# 4. Create Random Forest model
 # --------------------------------------------------
 
 model = RandomForestClassifier(
@@ -63,7 +65,7 @@ model = RandomForestClassifier(
 
 
 # --------------------------------------------------
-# 5. Train the model
+# 5. Train model
 # --------------------------------------------------
 
 print("\nTraining the ML model...")
@@ -74,14 +76,14 @@ print("Training completed!")
 
 
 # --------------------------------------------------
-# 6. Test the model
+# 6. Prediction
 # --------------------------------------------------
 
 y_pred = model.predict(X_test)
 
 
 # --------------------------------------------------
-# 7. Calculate accuracy
+# 7. Accuracy
 # --------------------------------------------------
 
 accuracy = accuracy_score(y_test, y_pred)
@@ -106,10 +108,12 @@ print(confusion_matrix(y_test, y_pred))
 
 
 # --------------------------------------------------
-# 10. Save the trained model
+# 10. Save model
 # --------------------------------------------------
 
 joblib.dump(model, MODEL_PATH)
 
 print("\nModel saved successfully!")
 print("Model path:", MODEL_PATH)
+
+print("\nML training completed successfully!")
