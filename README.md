@@ -16,3 +16,41 @@ Developed and integrated the GPS, IoT, and rider safety monitoring features for 
 ### Contribution
 
 Responsible for the **GPS tracking, IoT integration, and rider safety monitoring module** of the Smart Helmet AI system.
+
+## 👤 Team Member 2 – ML Model & Prediction
+
+**Role: Machine Learning Model Training, Testing & Sensor Prediction**
+
+### Completed Work
+
+- Prepared accelerometer and gyroscope sensor features for machine learning.
+- Applied feature scaling using StandardScaler.
+- Divided the dataset into training and testing data.
+- Trained a Random Forest classification model.
+- Evaluated the model using accuracy, classification report and confusion matrix.
+- Saved the trained ML model.
+- Saved the sensor data scaler for prediction.
+- Created the sensor prediction/inference pipeline.
+- Implemented accident and normal condition prediction using sensor data.
+
+### Machine Learning Features
+
+The ML model uses the following six sensor features:
+
+- accel_x
+- accel_y
+- accel_z
+- gyro_x
+- gyro_y
+- gyro_z
+
+### Prediction
+
+The prediction system classifies sensor readings into:
+
+- **0 → Normal condition**
+- **1 → Accident condition**
+
+### Contribution
+
+Responsible for the **ML model training, testing, sensor prediction and inference pipeline** of the Smart Helmet AI system.+
