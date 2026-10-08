@@ -1,9 +1,16 @@
 import joblib
 import pandas as pd
-import time
-import threading
 from pathlib import Path
+
+# Import GPS function
+from gps import get_gps_location
+
+# Import safety confirmation
+from safety_button import wait_for_safety_confirmation
+
+# Import emergency message
 from emergency_message import send_emergency_message
+
 
 # ==================================================
 # 1. PROJECT PATHS
@@ -31,8 +38,10 @@ try:
     print("Scaler loaded successfully.")
 
 except Exception as e:
-    print("\nError loading model or scaler:")
-    print(e)
+
+    print("\nERROR: Could not load ML model or scaler.")
+    print("Reason:", e)
+
     exit()
 
 
@@ -53,7 +62,6 @@ choice = input("\nEnter your choice (1 or 2): ").strip()
 
 if choice == "1":
 
-    # Normal sensor values
     sensor_data = {
         "accel_x": -0.562321,
         "accel_y": 0.109575,
@@ -68,7 +76,6 @@ if choice == "1":
 
 elif choice == "2":
 
-    # Accident sensor values
     sensor_data = {
         "accel_x": -1.389484,
         "accel_y": -7.479812,
@@ -84,7 +91,8 @@ elif choice == "2":
 else:
 
     print("\nInvalid choice!")
-    print("Please enter either 1 or 2.")
+    print("Please enter 1 or 2.")
+
     exit()
 
 
@@ -97,6 +105,7 @@ print("       SENSOR VALUES")
 print("================================")
 
 for name, value in sensor_data.items():
+
     print(f"{name}: {value}")
 
 
@@ -113,26 +122,49 @@ features = [
     "gyro_z"
 ]
 
-sensor_df = pd.DataFrame([sensor_data], columns=features)
+sensor_df = pd.DataFrame(
+    [sensor_data],
+    columns=features
+)
 
 
 # ==================================================
 # 7. SCALE SENSOR DATA
 # ==================================================
 
-sensor_scaled = scaler.transform(sensor_df)
+try:
 
-sensor_scaled_df = pd.DataFrame(
-    sensor_scaled,
-    columns=features
-)
+    sensor_scaled = scaler.transform(sensor_df)
+
+    # Convert scaled data back to DataFrame
+    # so that feature names are preserved
+    sensor_scaled_df = pd.DataFrame(
+        sensor_scaled,
+        columns=features
+    )
+
+except Exception as e:
+
+    print("\nERROR during data scaling:")
+    print(e)
+
+    exit()
 
 
 # ==================================================
 # 8. ML PREDICTION
 # ==================================================
 
-prediction = model.predict(sensor_scaled_df)[0]
+try:
+
+    prediction = model.predict(sensor_scaled_df)[0]
+
+except Exception as e:
+
+    print("\nERROR during ML prediction:")
+    print(e)
+
+    exit()
 
 
 # ==================================================
@@ -152,7 +184,7 @@ print("Predicted label:", prediction)
 
 if prediction == 0:
 
-    print("Condition: NORMAL")
+    print("\nCondition: NORMAL")
 
     print("Green LED: ON")
     print("Red LED: OFF")
@@ -168,7 +200,7 @@ if prediction == 0:
 
 elif prediction == 1:
 
-    print("Condition: ACCIDENT")
+    print("\nCondition: ACCIDENT")
 
     print("Green LED: OFF")
     print("Red LED: ON")
@@ -176,103 +208,122 @@ elif prediction == 1:
 
     print("\nWARNING! ACCIDENT DETECTED!")
 
-    print("\nYou have 15 seconds to confirm that you are safe.")
-    print("Type YES and press Enter to cancel the emergency alert.")
 
+    # ==================================================
+    # SAFETY CONFIRMATION
+    # ==================================================
 
-    # --------------------------------------------------
-    # Safety confirmation
-    # --------------------------------------------------
-
-    user_input = [None]
-
-
-    def get_confirmation():
-        user_input[0] = input("\nType YES if you are safe: ")
-
-
-    input_thread = threading.Thread(
-        target=get_confirmation
+    safety_confirmed = wait_for_safety_confirmation(
+        timeout=15
     )
 
-    input_thread.daemon = True
-    input_thread.start()
-
-
-    # --------------------------------------------------
-    # 15 SECOND TIMER
-    # --------------------------------------------------
-
-    for remaining in range(15, 0, -1):
-
-        if user_input[0] is not None:
-            break
-
-        print(f"Time remaining: {remaining} seconds")
-        time.sleep(1)
-
 
     # ==================================================
-    # 12. RIDER CONFIRMED SAFE
+    # RIDER CONFIRMED SAFE
     # ==================================================
 
-    if (
-        user_input[0] is not None
-        and user_input[0].strip().upper() == "YES"
-    ):
+    if safety_confirmed:
 
-        print("\nSafety confirmation received.")
+        print("\n================================")
+        print("       SAFETY CONFIRMED")
+        print("================================")
+
+        print("Rider confirmed that they are safe.")
         print("Emergency alert cancelled.")
 
 
     # ==================================================
-    # 13. NO CONFIRMATION
+    # NO SAFETY CONFIRMATION
     # ==================================================
 
     else:
-
-        print("\nNo safety confirmation received.")
-        print("Emergency alert triggered!")
 
         print("\n================================")
         print("       EMERGENCY ALERT")
         print("================================")
 
-        print("Red LED: ON")
+        print("No safety confirmation received.")
+        print("Emergency alert triggered!")
+
+        print("\nRed LED: ON")
         print("Buzzer: ON")
 
-        # --------------------------------------------------
-        # GPS SIMULATION
-        # --------------------------------------------------
 
-        latitude = 17.6868
-        longitude = 83.2185
+        # ==================================================
+        # GET GPS LOCATION
+        # ==================================================
 
-        print("\nGPS Location:")
-        print("Latitude:", latitude)
-        print("Longitude:", longitude)
+        print("\nGetting GPS location...")
 
-        maps_link = (
-            f"https://www.google.com/maps?"
-            f"q={latitude},{longitude}"
-        )
+        try:
 
-        print("\nLocation:")
-        print(maps_link)
+            latitude, longitude, maps_link = get_gps_location()
 
-        # --------------------------------------------------
-        # Emergency Message
-        # --------------------------------------------------
+            print("\nGPS Location:")
+            print("Latitude :", latitude)
+            print("Longitude:", longitude)
 
-        send_emergency_message(latitude, longitude)
+            print("\nGoogle Maps Location:")
+            print(maps_link)
+
+        except Exception as e:
+
+            print("\nERROR while getting GPS location:")
+            print(e)
+
+            latitude = None
+            longitude = None
+            maps_link = None
+
+
+        # ==================================================
+        # SEND EMERGENCY MESSAGE
+        # ==================================================
+
+        if latitude is not None and longitude is not None:
+
+            try:
+
+                send_emergency_message(
+                    latitude,
+                    longitude
+                )
+
+                print("\nEmergency message sent successfully.")
+
+            except Exception as e:
+
+                print("\nERROR while sending emergency message:")
+                print(e)
+
+        else:
+
+            print(
+                "\nEmergency message could not include GPS location."
+            )
 
 
 # ==================================================
-# 14. EXPECTED CONDITION
+# 12. UNEXPECTED PREDICTION
+# ==================================================
+
+else:
+
+    print(
+        "\nUnexpected ML prediction:",
+        prediction
+    )
+
+
+# ==================================================
+# 13. FINAL STATUS
 # ==================================================
 
 print("\n================================")
-print("Expected condition:", expected_condition)
+print(
+    "Expected condition:",
+    expected_condition
+)
 print("================================")
 
 print("\nSystem execution completed.")
